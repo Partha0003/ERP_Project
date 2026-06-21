@@ -61,5 +61,17 @@ public interface SalaryRepository extends JpaRepository<Salary, Long> {
     // Find salaries by employee ID, ordered by date (descending)
     List<Salary> findByEmployeeIdOrderByDateDesc(Long employeeId);
 
-//	List<Salary> findByMonth(int monthValue, int year);
+    List<Salary> findByMonthAndForwardedToFinanceTrue(LocalDate month);
+
+    @Query("SELECT SUM(s.totalPayable) FROM Salary s WHERE s.paid = true AND s.month = :month")
+    Double sumPaidPayoutByMonth(@Param("month") LocalDate month);
+
+    @Query("SELECT COUNT(s) FROM Salary s WHERE s.month = :month AND s.approvedByHR = false")
+    Long countPendingHrApprovalByMonth(@Param("month") LocalDate month);
+
+    @Query("SELECT COUNT(s) FROM Salary s WHERE s.month = :month AND s.forwardedToFinance = true AND s.paid = false")
+    Long countForwardedPendingByMonth(@Param("month") LocalDate month);
+
+    @Query("SELECT COUNT(s) FROM Salary s WHERE s.month = :month AND s.paid = true")
+    Long countPaidByMonth(@Param("month") LocalDate month);
 }

@@ -46,8 +46,8 @@ export function HRDashboard() {
   });
 
   const payrollQuery = useQuery({
-    queryKey: ['hr', 'payroll', 'dashboard'],
-    queryFn: salaryApi.getDashboard,
+    queryKey: ['hr', 'payroll', 'dashboard', salaryMonth],
+    queryFn: () => salaryApi.getDashboard(salaryMonth),
   });
 
   const statusQuery = useQuery({

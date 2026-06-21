@@ -19,7 +19,7 @@ export function PayrollTable({
   actionId,
 }: PayrollTableProps) {
   if (payslips.length === 0) {
-    return <div className="text-center text-muted py-5">No payslips for selected period</div>;
+    return <div className="text-center text-muted py-5">No salary records for selected period</div>;
   }
 
   return (

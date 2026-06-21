@@ -30,6 +30,10 @@ export function useHrMutations() {
   const invalidatePayroll = () => {
     queryClient.invalidateQueries({ queryKey: ['hr', 'payroll'] });
     queryClient.invalidateQueries({ queryKey: ['hr', 'payslips'] });
+    queryClient.invalidateQueries({ queryKey: ['salary'] });
+    queryClient.invalidateQueries({ queryKey: ['payslips'] });
+    queryClient.invalidateQueries({ queryKey: ['finance', 'payroll'] });
+    queryClient.invalidateQueries({ queryKey: ['employee', 'payslips'] });
   };
 
   const invalidatePerformance = () => {

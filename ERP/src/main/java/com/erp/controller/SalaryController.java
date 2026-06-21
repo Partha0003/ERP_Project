@@ -11,14 +11,9 @@ import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.MalformedURLException;
-import java.security.Principal;
 import java.time.LocalDate;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.io.IOException;
-
 
 @RestController
 @RequestMapping("/api/salary")
@@ -28,29 +23,29 @@ public class SalaryController {
     private final SalaryService salaryService;
     private final PayslipService payslipService;
 
-    // Generate salary for a month
     @PostMapping("/generate")
     @PreAuthorize("hasRole('HR')")
-    public ResponseEntity<String> generateSalary(
+    public ResponseEntity<SalaryGenerateResultDto> generateSalary(
             @RequestParam("month") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate month) {
-        try {
-            salaryService.generateMonthlySalary(month);
-            return ResponseEntity.ok("Salary generated successfully for " + month.getMonth());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to generate salary for " + month.getMonth() + ": " + e.getMessage());
-        }
+        SalaryGenerateResultDto result = salaryService.generateMonthlySalary(month);
+        return ResponseEntity.ok(result);
     }
 
+    @GetMapping("/all")
+    @PreAuthorize("hasAnyRole('HR', 'FINANCE', 'ADMIN')")
+    public ResponseEntity<List<SalaryPayslipDto>> getAllSalaries(
+            @RequestParam("month") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate month,
+            @RequestParam(value = "employeeName", required = false) String employeeName) {
+        return ResponseEntity.ok(salaryService.getAllSalariesForMonth(month, employeeName));
+    }
 
-//    // Get all salaries by month
-//    @GetMapping("/all")
-//    @PreAuthorize("hasAnyRole('HR', 'FINANCE','ADMIN')")
-//    public ResponseEntity<List<Salary>> getAllSalaries(
-//            @RequestParam("month") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate month) {
-//        return ResponseEntity.ok(salaryService.getAllSalaries(month));
-//    }
-
+    @GetMapping("/forwarded")
+    @PreAuthorize("hasAnyRole('FINANCE', 'ADMIN')")
+    public ResponseEntity<List<SalaryPayslipDto>> getForwardedSalaries(
+            @RequestParam("month") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate month,
+            @RequestParam(value = "employeeName", required = false) String employeeName) {
+        return ResponseEntity.ok(salaryService.getForwardedSalaries(month, employeeName));
+    }
 
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasRole('HR')")
@@ -73,10 +68,6 @@ public class SalaryController {
         return ResponseEntity.ok("Salary marked as paid");
     }
 
-  
-
-  
-    // Summary dashboard
     @GetMapping("/summary")
     @PreAuthorize("hasAnyRole('HR', 'FINANCE')")
     public ResponseEntity<Map<String, Long>> getSummary(
@@ -84,56 +75,49 @@ public class SalaryController {
         return ResponseEntity.ok(salaryService.getSalarySummary(month));
     }
 
-    
-    // Dashboard for admin/finance
     @GetMapping("/salary/dashboard")
     @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE', 'HR')")
-    public ResponseEntity<SalaryDashboardSummaryDto> getSalaryDashboardSummary() {
-        return ResponseEntity.ok(salaryService.getSalaryDashboardSummary());
+    public ResponseEntity<SalaryDashboardSummaryDto> getSalaryDashboardSummary(
+            @RequestParam("month") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate month) {
+        return ResponseEntity.ok(salaryService.getSalaryDashboardSummary(month));
     }
 
-       @GetMapping("/employee/{employeeId}/history")
+    @GetMapping("/{id}/download-preview")
+    @PreAuthorize("hasAnyRole('HR', 'FINANCE', 'ADMIN')")
+    public ResponseEntity<byte[]> downloadSalaryPreview(@PathVariable Long id) {
+        SalaryPayslipDto dto = salaryService.getSalaryPreview(id);
+        byte[] pdf = com.erp.Utility.PdfGeneratorUtil.generatePayslipPdf(dto);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "SalaryPreview_" + dto.getEmployeeName() + ".pdf");
+        return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
+    }
+
+    @GetMapping("/employee/{employeeId}/history")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<Salary>> getSalaryHistoryByEmployee(@PathVariable Long employeeId) {
-        List<Salary> salaryHistory = salaryService.getSalaryHistoryByEmployeeId(employeeId);
-        return ResponseEntity.ok(salaryHistory);
+        return ResponseEntity.ok(salaryService.getSalaryHistoryByEmployeeId(employeeId));
     }
 
     @PutMapping("/regenerate/{id}")
     @PreAuthorize("hasRole('HR')")
     public ResponseEntity<String> regenerateSalary(@PathVariable Long id) {
-        salaryService.regenerateSalaryEntry(id); // Call to service layer to regenerate salary
+        salaryService.regenerateSalaryEntry(id);
         return ResponseEntity.ok("Salary entry regenerated successfully");
     }
-
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> deleteSalaryEntry(@PathVariable Long id) {
-        salaryService.deleteSalary(id); // Call to the service to delete the salary
+        salaryService.deleteSalary(id);
         return ResponseEntity.ok("Salary entry deleted successfully");
     }
 
-
-   
-
-
-    
-    
     @GetMapping("/status-count")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR', 'FINANCE')")
-    public ResponseEntity<?> getSalaryStatusCount(
+    public ResponseEntity<Map<String, Long>> getSalaryStatusCount(
             @RequestParam("month") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate month) {
-        try {
-            Map<String, Long> salaryStatusCounts = salaryService.getSalaryStatusCounts(month);
-            return ResponseEntity.ok(salaryStatusCounts);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                 .body(Map.of("error", "Failed to fetch salary status counts"));
-        }
+        return ResponseEntity.ok(salaryService.getSalaryStatusCounts(month));
     }
-
-
-
-
 }

@@ -10,8 +10,8 @@ export function PayslipsPage() {
   const monthParam = `${month}-01`;
 
   const query = useQuery({
-    queryKey: ['payslips', 'finance', monthParam, search],
-    queryFn: () => payslipApi.filter(monthParam, undefined, search || undefined),
+    queryKey: ['payslips', 'finance', 'records', monthParam, search],
+    queryFn: () => payslipApi.getRecords(monthParam, search || undefined),
   });
 
   if (query.isLoading) return <PageLoader />;
@@ -54,9 +54,9 @@ export function PayslipsPage() {
                 <th>Employee</th>
                 <th>Department</th>
                 <th>Month</th>
+                <th>Year</th>
                 <th>Net Salary</th>
                 <th>Status</th>
-                <th>Paid</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -64,7 +64,7 @@ export function PayslipsPage() {
               {payslips.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center text-muted py-4">
-                    No payslips for this month. Generate payroll from the HR portal first.
+                    No payslips for this month. Mark salaries as paid in Payroll Processing first.
                   </td>
                 </tr>
               ) : (
@@ -73,9 +73,9 @@ export function PayslipsPage() {
                     <td>{p.employeeName}</td>
                     <td>{p.department}</td>
                     <td>{p.month}</td>
+                    <td>{p.year}</td>
                     <td>{formatCurrency(p.netSalary)}</td>
                     <td><span className="badge bg-secondary">{p.status}</span></td>
-                    <td>{p.paid ? 'Yes' : 'No'}</td>
                     <td>
                       <button
                         className="btn btn-sm btn-outline-primary"

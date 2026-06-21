@@ -2,6 +2,26 @@ export interface SalaryDashboardSummaryDto {
   totalPayout: number;
   pendingPayslipsCount: number;
   forwardedPayslipsCount: number;
+  paidCount: number;
+}
+
+export interface SalaryGenerateResultDto {
+  generatedCount: number;
+  skippedCount: number;
+  warnings: string[];
+  message: string;
+}
+
+export interface PayslipRecordDto {
+  id: number;
+  salaryId?: number;
+  employeeName: string;
+  department: string;
+  month: string;
+  year: number;
+  netSalary: number;
+  status: string;
+  downloadUrl?: string;
 }
 
 export interface SalaryRecord {

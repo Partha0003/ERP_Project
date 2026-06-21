@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { salaryApi, payslipApi } from '@/api/salary.api';
+import { salaryApi } from '@/api/salary.api';
 import { AlertBanner } from '@/features/admin/components/AlertBanner';
 import { PageHeader, PageLoader, ErrorAlert } from '@/components/shared/PageHeader';
 import { formatCurrency, getCurrentMonthParam } from '@/utils/roleUtils';
@@ -12,25 +12,27 @@ export function PayrollProcessingPage() {
   const [alert, setAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
   const monthParam = `${month}-01`;
 
-  const payslipsQuery = useQuery({
-    queryKey: ['payslips', 'filter', monthParam],
-    queryFn: () => payslipApi.filter(monthParam),
+  const salariesQuery = useQuery({
+    queryKey: ['finance', 'payroll', 'forwarded', monthParam],
+    queryFn: () => salaryApi.getForwarded(monthParam),
   });
 
   const markPaidMutation = useMutation({
     mutationFn: salaryApi.markPaid,
     onSuccess: (msg) => {
       setAlert({ type: 'success', message: msg || 'Salary marked as paid' });
+      queryClient.invalidateQueries({ queryKey: ['finance', 'payroll'] });
       queryClient.invalidateQueries({ queryKey: ['payslips'] });
       queryClient.invalidateQueries({ queryKey: ['salary'] });
+      queryClient.invalidateQueries({ queryKey: ['hr', 'payroll'] });
     },
     onError: (err) => setAlert({ type: 'danger', message: getApiErrorMessage(err, 'Failed to mark as paid') }),
   });
 
-  if (payslipsQuery.isLoading) return <PageLoader />;
-  if (payslipsQuery.error) return <ErrorAlert message="Failed to load payroll records. Ensure HR has forwarded salaries." />;
+  if (salariesQuery.isLoading) return <PageLoader />;
+  if (salariesQuery.error) return <ErrorAlert message="Failed to load forwarded salaries. Ensure HR has forwarded payroll." />;
 
-  const payslips = (payslipsQuery.data ?? []).filter((p) => p.forwardedToFinance);
+  const salaries = salariesQuery.data ?? [];
 
   return (
     <div>
@@ -65,14 +67,14 @@ export function PayrollProcessingPage() {
               </tr>
             </thead>
             <tbody>
-              {payslips.length === 0 ? (
+              {salaries.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center text-muted py-4">
                     No forwarded salaries for this month. HR must generate → approve → forward first.
                   </td>
                 </tr>
               ) : (
-                payslips.map((p) => (
+                salaries.map((p) => (
                   <tr key={p.id}>
                     <td>{p.employeeName}</td>
                     <td>{p.department}</td>

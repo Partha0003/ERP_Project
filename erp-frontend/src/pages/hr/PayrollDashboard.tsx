@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { salaryApi, payslipApi } from '@/api/salary.api';
+import { salaryApi } from '@/api/salary.api';
 import { AlertBanner } from '@/features/admin/components/AlertBanner';
 import { PayrollTable } from '@/features/hr/components/PayrollTable';
 import { PayrollBarChart } from '@/components/charts/HrCharts';
@@ -20,13 +20,13 @@ export function PayrollDashboard() {
   const { generateSalary, approveSalary, forwardSalary, emailPayslip } = useHrMutations();
 
   const dashboardQuery = useQuery({
-    queryKey: ['hr', 'payroll', 'dashboard'],
-    queryFn: salaryApi.getDashboard,
+    queryKey: ['hr', 'payroll', 'dashboard', monthParam],
+    queryFn: () => salaryApi.getDashboard(monthParam),
   });
 
-  const payslipsQuery = useQuery({
-    queryKey: ['hr', 'payslips', monthParam, searchName],
-    queryFn: () => payslipApi.filter(monthParam, undefined, searchName || undefined),
+  const salariesQuery = useQuery({
+    queryKey: ['hr', 'payroll', 'salaries', monthParam, searchName],
+    queryFn: () => salaryApi.getAll(monthParam, searchName || undefined),
   });
 
   const statusQuery = useQuery({
@@ -37,8 +37,11 @@ export function PayrollDashboard() {
   const handleGenerate = async () => {
     setAlert(null);
     try {
-      const msg = await generateSalary.mutateAsync(monthParam);
-      setAlert({ type: 'success', message: msg });
+      const result = await generateSalary.mutateAsync(monthParam);
+      const warningText = result.warnings?.length
+        ? ` Warnings: ${result.warnings.join('; ')}`
+        : '';
+      setAlert({ type: 'success', message: `${result.message}${warningText}` });
     } catch (err) {
       setAlert({ type: 'danger', message: getApiErrorMessage(err, 'Failed to generate salary') });
     }
@@ -60,7 +63,7 @@ export function PayrollDashboard() {
   if (dashboardQuery.error) return <ErrorAlert message="Failed to load payroll dashboard" />;
 
   const dash = dashboardQuery.data;
-  const payslips = payslipsQuery.data ?? [];
+  const salaries = salariesQuery.data ?? [];
   const chartData = Object.entries(statusQuery.data ?? {}).map(([name, value]) => ({ name, value }));
 
   return (
@@ -81,14 +84,17 @@ export function PayrollDashboard() {
       {alert && <AlertBanner type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}
 
       <div className="row g-4 mb-4">
-        <div className="col-sm-4">
-          <StatCard title="Total Payout" value={formatCurrency(dash?.totalPayout ?? 0)} icon="cash-stack" color="primary" />
+        <div className="col-sm-6 col-xl-3">
+          <StatCard title="Total Payroll (Paid)" value={formatCurrency(dash?.totalPayout ?? 0)} icon="cash-stack" color="primary" />
         </div>
-        <div className="col-sm-4">
-          <StatCard title="Pending" value={dash?.pendingPayslipsCount ?? 0} icon="hourglass" color="warning" />
+        <div className="col-sm-6 col-xl-3">
+          <StatCard title="Pending Approval" value={dash?.pendingPayslipsCount ?? 0} icon="hourglass" color="warning" />
         </div>
-        <div className="col-sm-4">
+        <div className="col-sm-6 col-xl-3">
           <StatCard title="Forwarded" value={dash?.forwardedPayslipsCount ?? 0} icon="arrow-right" color="info" />
+        </div>
+        <div className="col-sm-6 col-xl-3">
+          <StatCard title="Paid" value={dash?.paidCount ?? 0} icon="check-circle" color="success" />
         </div>
       </div>
 
@@ -113,14 +119,18 @@ export function PayrollDashboard() {
           </div>
           <div className="card border-0 shadow-sm">
             <div className="card-body p-0">
-              <PayrollTable
-                payslips={payslips}
-                actionId={actionId}
-                onApprove={(id) => { setActionId(id); runAction(() => approveSalary.mutateAsync(id), 'Approved'); }}
-                onForward={(id) => { setActionId(id); runAction(() => forwardSalary.mutateAsync(id), 'Forwarded'); }}
-                onDownload={(p) => payslipApi.download(p.id, `Payslip_${p.employeeName}.pdf`)}
-                onEmail={(id) => { setActionId(id); runAction(() => emailPayslip.mutateAsync(id), 'Email sent'); }}
-              />
+              {salariesQuery.isLoading ? (
+                <PageLoader />
+              ) : (
+                <PayrollTable
+                  payslips={salaries}
+                  actionId={actionId}
+                  onApprove={(id) => { setActionId(id); runAction(() => approveSalary.mutateAsync(id), 'Approved'); }}
+                  onForward={(id) => { setActionId(id); runAction(() => forwardSalary.mutateAsync(id), 'Forwarded'); }}
+                  onDownload={(p) => salaryApi.downloadPreview(p.id, `SalaryPreview_${p.employeeName}.pdf`)}
+                  onEmail={(id) => { setActionId(id); runAction(() => emailPayslip.mutateAsync(id), 'Email sent'); }}
+                />
+              )}
             </div>
           </div>
         </div>

@@ -18,8 +18,23 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(new MessageResponse(ex.getMessage()), HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(SalaryNotFoundException.class)
+    public ResponseEntity<MessageResponse> handleSalaryNotFound(SalaryNotFoundException ex) {
+        return new ResponseEntity<>(new MessageResponse(ex.getMessage()), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(PayslipNotFoundException.class)
+    public ResponseEntity<MessageResponse> handlePayslipNotFound(PayslipNotFoundException ex) {
+        return new ResponseEntity<>(new MessageResponse(ex.getMessage()), HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(LeaveRequestException.class)
     public ResponseEntity<MessageResponse> handleLeaveRequestException(LeaveRequestException ex) {
+        return new ResponseEntity<>(new MessageResponse(ex.getMessage()), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler({PayrollWorkflowException.class, DuplicateRecordException.class, IllegalArgumentException.class})
+    public ResponseEntity<MessageResponse> handleBadRequest(RuntimeException ex) {
         return new ResponseEntity<>(new MessageResponse(ex.getMessage()), HttpStatus.BAD_REQUEST);
     }
 

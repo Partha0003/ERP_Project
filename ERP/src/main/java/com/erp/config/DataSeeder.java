@@ -110,12 +110,14 @@ public class DataSeeder implements CommandLineRunner {
 
             if (salary.isPaid()) {
                 Payslip payslip = new Payslip();
+                payslip.setSalary(salary);
                 payslip.setEmployee(emp);
+                payslip.setPayrollMonth(monthStart);
                 payslip.setBaseSalary(salary.getBaseSalary());
                 payslip.setBonus(salary.getBonus());
-                payslip.setDeduction(salary.getDeduction());
+                payslip.setDeduction(salary.getDeduction() + salary.getTax());
                 payslip.setTotalPayable(salary.getTotalPayable());
-                payslip.setDateIssued(monthStart);
+                payslip.setDateIssued(LocalDate.now());
                 payslip.setStatus("Paid");
                 payslipRepository.save(payslip);
             }

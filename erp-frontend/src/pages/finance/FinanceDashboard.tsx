@@ -8,8 +8,8 @@ export function FinanceDashboard() {
   const month = getCurrentMonthParam();
 
   const dashboardQuery = useQuery({
-    queryKey: ['salary', 'dashboard'],
-    queryFn: salaryApi.getDashboard,
+    queryKey: ['salary', 'dashboard', month],
+    queryFn: () => salaryApi.getDashboard(month),
   });
 
   const summaryQuery = useQuery({
@@ -36,7 +36,7 @@ export function FinanceDashboard() {
       <div className="row g-4 mb-4">
         <div className="col-sm-6 col-xl-3">
           <StatCard
-            title="Total Payout"
+            title="Total Payroll (Paid)"
             value={formatCurrency(dash?.totalPayout ?? 0)}
             icon="cash-stack"
             color="primary"
@@ -44,7 +44,7 @@ export function FinanceDashboard() {
         </div>
         <div className="col-sm-6 col-xl-3">
           <StatCard
-            title="Pending Payslips"
+            title="Pending Approval"
             value={dash?.pendingPayslipsCount ?? 0}
             icon="hourglass-split"
             color="warning"
@@ -52,7 +52,7 @@ export function FinanceDashboard() {
         </div>
         <div className="col-sm-6 col-xl-3">
           <StatCard
-            title="Forwarded"
+            title="Forwarded (Unpaid)"
             value={dash?.forwardedPayslipsCount ?? 0}
             icon="arrow-right-circle"
             color="info"
@@ -60,9 +60,9 @@ export function FinanceDashboard() {
         </div>
         <div className="col-sm-6 col-xl-3">
           <StatCard
-            title="Summary Items"
-            value={Object.keys(summary).length}
-            icon="list-check"
+            title="Paid"
+            value={dash?.paidCount ?? 0}
+            icon="check-circle"
             color="success"
           />
         </div>
@@ -73,12 +73,12 @@ export function FinanceDashboard() {
           <div className="card border-0 shadow-sm">
             <div className="card-header bg-white fw-semibold">Monthly Summary</div>
             <ul className="list-group list-group-flush">
-      {Object.keys(summary).length === 0 ? (
+              {Object.keys(summary).length === 0 ? (
                 <li className="list-group-item text-muted">No payroll data for this month — ask HR to generate salaries.</li>
               ) : (
                 Object.entries(summary).map(([key, val]) => (
                   <li key={key} className="list-group-item d-flex justify-content-between">
-                    <span>{key}</span>
+                    <span className="text-capitalize">{key}</span>
                     <span className="fw-semibold">{val}</span>
                   </li>
                 ))

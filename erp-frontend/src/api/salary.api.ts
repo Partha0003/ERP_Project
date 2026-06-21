@@ -2,16 +2,34 @@ import axiosInstance from './axiosInstance';
 import type {
   MyPayslipDto,
   PayslipLogDto,
+  PayslipRecordDto,
   PerformanceReviewDto,
   SalaryDashboardSummaryDto,
+  SalaryGenerateResultDto,
   SalaryPayslipDto,
   SalaryRecord,
 } from '@/types/salary.types';
 import { downloadBlob } from '@/utils/roleUtils';
 
 export const salaryApi = {
-  generate: async (month: string): Promise<string> => {
-    const response = await axiosInstance.post<string>('/api/salary/generate', null, { params: { month } });
+  generate: async (month: string): Promise<SalaryGenerateResultDto> => {
+    const response = await axiosInstance.post<SalaryGenerateResultDto>('/api/salary/generate', null, {
+      params: { month },
+    });
+    return response.data;
+  },
+
+  getAll: async (month: string, employeeName?: string): Promise<SalaryPayslipDto[]> => {
+    const response = await axiosInstance.get<SalaryPayslipDto[]>('/api/salary/all', {
+      params: { month, employeeName },
+    });
+    return response.data;
+  },
+
+  getForwarded: async (month: string, employeeName?: string): Promise<SalaryPayslipDto[]> => {
+    const response = await axiosInstance.get<SalaryPayslipDto[]>('/api/salary/forwarded', {
+      params: { month, employeeName },
+    });
     return response.data;
   },
 
@@ -47,9 +65,18 @@ export const salaryApi = {
     return response.data;
   },
 
-  getDashboard: async (): Promise<SalaryDashboardSummaryDto> => {
-    const response = await axiosInstance.get<SalaryDashboardSummaryDto>('/api/salary/salary/dashboard');
+  getDashboard: async (month: string): Promise<SalaryDashboardSummaryDto> => {
+    const response = await axiosInstance.get<SalaryDashboardSummaryDto>('/api/salary/salary/dashboard', {
+      params: { month },
+    });
     return response.data;
+  },
+
+  downloadPreview: async (id: number, filename: string): Promise<void> => {
+    const response = await axiosInstance.get(`/api/salary/${id}/download-preview`, {
+      responseType: 'blob',
+    });
+    downloadBlob(response.data, filename);
   },
 
   getEmployeeHistory: async (employeeId: number): Promise<SalaryRecord[]> => {
@@ -66,6 +93,13 @@ export const salaryApi = {
 };
 
 export const payslipApi = {
+  getRecords: async (month: string, employeeName?: string): Promise<PayslipRecordDto[]> => {
+    const response = await axiosInstance.get<PayslipRecordDto[]>('/api/payslip/records', {
+      params: { month, employeeName },
+    });
+    return response.data;
+  },
+
   getById: async (id: number): Promise<SalaryPayslipDto> => {
     const response = await axiosInstance.get<SalaryPayslipDto>(`/api/payslip/payslip/${id}`);
     return response.data;

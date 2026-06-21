@@ -1,58 +1,31 @@
 package com.erp.service;
 
-import com.erp.Utility.PdfGeneratorUtil;
-import com.erp.dto.SalaryPayslipDto;
-
-import jakarta.mail.MessagingException;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-	
-import java.time.LocalDate;
-import java.util.List;
+import com.erp.dto.SalaryGenerateResultDto;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.time.LocalDate;
 
 @Service
 public class PayslipSchedulerService {
 
-	
-    private final PayslipService payslipService;
     private final SalaryService salaryService;
-    private final EmailService emailService;
     private static final Logger log = LoggerFactory.getLogger(PayslipSchedulerService.class);
 
-    public PayslipSchedulerService(SalaryService salaryService, EmailService emailService,PayslipService payslipService )
-    {
+    public PayslipSchedulerService(SalaryService salaryService) {
         this.salaryService = salaryService;
-        this.emailService = emailService;
-        this.payslipService = payslipService;
     }
 
-     // Runs at 00:00 on the 1st day of every month
     @Scheduled(cron = "0 0 0 1 * ?", zone = "Asia/Kolkata")
-    public void generateAndEmailPayslips() throws MessagingException {
-        LocalDate currentMonth = LocalDate.now().minusMonths(1);
-
-        List<SalaryPayslipDto> payslips = payslipService.generatePayslipsForMonth(currentMonth);
-
-        int success = 0;
-        int failed = 0;
-
-        for (SalaryPayslipDto payslip : payslips) {
-            try {
-                byte[] pdf = PdfGeneratorUtil.generatePayslipPdf(payslip);
-                emailService.sendPayslip(payslip.getEmployeeEmail(), pdf, payslip.getEmployeeName());
-                log.info("✅ Payslip sent to: {}", payslip.getEmployeeEmail());
-                success++;
-            } catch (Exception e) {
-                log.error("❌ Error occurred while processing payslip for: {}", payslip.getEmployeeEmail(), e);
-                failed++;
-            }
+    public void generateMonthlySalaries() {
+        LocalDate currentMonth = LocalDate.now().withDayOfMonth(1);
+        SalaryGenerateResultDto result = salaryService.generateMonthlySalary(currentMonth);
+        log.info("Scheduled salary generation for {}: {}", currentMonth, result.getMessage());
+        if (!result.getWarnings().isEmpty()) {
+            log.warn("Salary generation warnings: {}", result.getWarnings());
         }
-        log.info("📨 Payslip Summary - Total: {}, Sent: {}, Failed: {}", payslips.size(), success, failed);
-
     }
 }
